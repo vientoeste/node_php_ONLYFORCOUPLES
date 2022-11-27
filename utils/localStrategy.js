@@ -1,28 +1,39 @@
-import { use } from 'passport';
+import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { compare } from 'bcrypt'
-import { createConnection } from '../database';
+import * as bcrypt from 'bcrypt'
+import { mysql } from '../database/index.js';
+
 
 export const localStrategy = () => {
-  use(new LocalStrategy({
+  passport.use(new LocalStrategy({
     usernameField: 'username',
     passwordField: 'password',
   }, async (username, password, done) => {
-    const mysql = createConnection();
     try {
-      const user = await mysql.query('SELECT * FROM user WHERE username=?', [username])
+      const user = await mysql.query('SELECT username, password FROM user WHERE username=?', [username]).then((queryRes) => {
+        return queryRes[0];
+      });
       if (!user || user.length === 0) {
         done(null, false, {
           message: '미가입 회원입니다.'
         });
       }
-      const isAuthenticated = await compare(`${password}`, `${user[0].password}`);
+      if (user.length !== 1) {
+        done(null, false, {
+          message: 'Internal server error'
+        });
+      }
+      console.log(user)
+      const isAuthenticated = await bcrypt.compare(`${password}`, `${user.password}`);
+      console.log(isAuthenticated)
+      if (!isAuthenticated) {
+        done(null, false, {
+          message: '비밀번호가 일치하지 않습니다.'
+        });
+      }
       if (isAuthenticated) {
         done(null, user);
       }
-      done(null, false, {
-        message: '비밀번호가 일치하지 않습니다.'
-      });
     } catch (err) {
       console.error(err);
       done(err);

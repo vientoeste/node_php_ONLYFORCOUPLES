@@ -1,16 +1,15 @@
-import { createConnection } from '../database';
-
-const passport = require('passport');
-const localStrategy = require('./localStrategy');
+import { mysql } from '../database/index.js';
+import passport from 'passport';
+import { localStrategy } from './localStrategy.js';
 
 export const passportConfig = () => {
   passport.serializeUser((user, done) => {
     done(null, user.username);
   });
   passport.deserializeUser((username, done) => {
-    const mysql = createConnection();
     mysql.query(`SELECT username, password FROM user WHERE username=?`, [username]).then((queryRes) => {
-      done(null, queryRes[0].username);
+      const user = { username: queryRes[0].username, password: queryRes[0].password }
+      done(null, user);
     });
   });
   localStrategy();
