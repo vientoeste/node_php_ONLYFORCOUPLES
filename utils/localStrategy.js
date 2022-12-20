@@ -11,7 +11,10 @@ export const localStrategy = () => {
   }, async (username, password, done) => {
     try {
       const user = await mysql.query('SELECT username, password FROM user WHERE username=?', [username]).then((queryRes) => {
-        return queryRes[0];
+        return {
+          username: queryRes[0].username,
+          password: queryRes[0].password,
+        };
       });
       if (!user || user.length === 0) {
         done(null, false, {
@@ -23,22 +26,21 @@ export const localStrategy = () => {
           message: 'Internal server error'
         });
       }
-      console.log(user)
       const isAuthenticated = await bcrypt.compare(`${password}`, `${user.password}`);
-      console.log(isAuthenticated)
       if (!isAuthenticated) {
         done(null, false, {
           message: '비밀번호가 일치하지 않습니다.'
         });
       }
       if (isAuthenticated) {
-        done(null, user);
+        done(null, {
+          username: user.username,
+          password: user.password
+        });
       }
     } catch (err) {
       console.error(err);
       done(err);
-    } finally {
-      await mysql.end();
     }
   }));
 };

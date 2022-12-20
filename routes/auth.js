@@ -8,42 +8,33 @@ import { mysql } from '../database/index.js';
 export const authRouter = express.Router();
 
 authRouter.route('/login')
-  .get(isNotLoggedIn, (req, res) => {
+  .get((req, res) => {
     res.render('login');
-  })
-  .post(async (req, res, next) => {
-    await mysql.connect();
-    const { username, password } = req.body;
-    try {
-      if (!username || !password) {
-        throw new Error('There\'s no username or password on reqbody');
-      }
-      const queryRes = await mysql.query(`SELECT username, password FROM user WHERE username=?`, [username]);
-      req.login({
-        username: queryRes[0].username,
-        password: queryRes[0].password,
-      }, (error) => {
-        if (error) {
-          console.error(error)
-          throw new Error('login error');
-        }
-        passport.authenticate('local', {
-          successRedirect: '/',
-          failureRedirect: '/auth/login',
-        })(req, res, next, () => {
-          next(error)
-        });
-      });
-      console.log('123123231312123')
-      console.log(req.user)
-      // return res.redirect('/')
-    } catch (err) {
-      console.error(err);
-      next(err);
-    } finally {
-      await mysql.end();
-    }
   });
+authRouter.post('/login', passport.authenticate('local', {
+  failWithError: true,
+  failureMessage: true,
+}), async (req, res, next) => {
+  const { username, password } = req.body;
+  try {
+    req.login({
+      username: username,
+      password: password,
+    }, (error) => {
+      console.log(23);
+      if (error) {
+        console.error(error)
+        throw new Error('login error');
+      };
+    });
+    console.log(35)
+    console.log(req.user)
+  } catch (err) {
+    next(err);
+  }
+  res.send('ok')
+  return;
+});
 
 authRouter.route('/logout')
   .get(isLoggedIn, (req, res, next) => {
